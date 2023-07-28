@@ -16,6 +16,7 @@
         <module>mongo</module>
         <module>kylin</module>
         <module>kingbase</module>
+        <module>sqlite</module>
     </modules>
 
     <artifactId>dataease-extensions-datasource</artifactId>

@@ -1,0 +1,13 @@
+{
+    "name":"sqlite数据源插件",
+    "free":1,
+    "store":"thirdPart",
+    "cost":0,
+    "category":"datasource",
+    "descript":"sqlite插件，值得拥有",
+    "version":"1.18.8",
+    "creator":"DATAEASE",
+    "moduleName":"sqlite-backend",
+    "require":"1.12.0",
+    "dsType":"sqlite"
+}
