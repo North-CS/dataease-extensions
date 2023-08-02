@@ -1,0 +1,13 @@
+{
+    "name":"SLS 数据源插件",
+    "free":0,
+    "store":"default",
+    "cost":0,
+    "category":"datasource",
+    "descript":"SLS 插件，值得拥有",
+    "version":"1.0-SNAPSHOT",
+    "creator":"DATAEASE",
+    "moduleName":"sls-backend",
+    "require":"1.12.0",
+    "dsType":"sls"
+}
