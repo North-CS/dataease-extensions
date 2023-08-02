@@ -1,0 +1,13 @@
+{
+    "name":"dremio数据源插件",
+    "free":0,
+    "store":"thirdpart",
+    "cost":0,
+    "category":"datasource",
+    "descript":"dremio插件，值得拥有",
+    "version":"1.18.9",
+    "creator":"DATAEASE",
+    "moduleName":"dremio-backend",
+    "require":"1.12.0",
+    "dsType":"dremio"
+}

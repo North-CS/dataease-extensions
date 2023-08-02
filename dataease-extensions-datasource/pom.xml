@@ -19,6 +19,7 @@
         <module>sqlite</module>
         <module>sls</module>
         <module>influxdb</module>
+        <module>dremio</module>
     </modules>
 
     <artifactId>dataease-extensions-datasource</artifactId>
