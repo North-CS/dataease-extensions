@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>io.dataease</groupId>
+        <artifactId>influxdb</artifactId>
+        <version>${dataease.version}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>influxdb-backend</artifactId>
+
+    <properties>
+        <custom.lib-path>${pom.basedir}/src/main/resources</custom.lib-path>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.dataease</groupId>
+            <artifactId>dataease-plugin-datasource</artifactId>
+            <version>1.18.5</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.influxdb</groupId>
+            <artifactId>influxdb-java</artifactId>
+            <version>2.18</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>okhttp</artifactId>
+                    <groupId>com.squareup.okhttp3</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>retrofit</artifactId>
+                    <groupId>com.squareup.retrofit2</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>converter-moshi</artifactId>
+                    <groupId>com.squareup.retrofit2</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>moshi</artifactId>
+                    <groupId>com.squareup.moshi</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>okio</artifactId>
+                    <groupId>com.squareup.okio</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>3.14.9</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>okio</artifactId>
+                    <groupId>com.squareup.okio</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.retrofit2</groupId>
+            <artifactId>retrofit</artifactId>
+            <version>2.5.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.squareup.okhttp3</groupId>
+                    <artifactId>okhttp</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.squareup.retrofit2</groupId>
+            <artifactId>converter-moshi</artifactId>
+            <version>2.5.0</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>moshi</artifactId>
+                    <groupId>com.squareup.moshi</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.squareup.moshi</groupId>
+            <artifactId>moshi</artifactId>
+            <version>1.6.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.squareup.okio</groupId>
+            <artifactId>okio</artifactId>
+            <version>1.14.0</version>
+        </dependency>
+
+        <!-- 引入org.json所需依赖 -->
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20160810</version>
+        </dependency>
+
+        <!--        测试需要，正式打包需要删掉-->
+<!--        <dependency>-->
+<!--            <groupId>com.alibaba</groupId>-->
+<!--            <artifactId>fastjson</artifactId>-->
+<!--            <version>1.2.47</version>-->
+<!--        </dependency>-->
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/java</directory>
+                <includes>
+                    <include>**/*.properties</include>
+                    <include>**/*.xml</include>
+                </includes>
+                <filtering>false</filtering>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+                <filtering>false</filtering>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/server/**</exclude>
+                        <exclude>**/*.properties</exclude>
+                        <exclude>**/Application*</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>src/main/resources/static</directory>
+                            <includes>
+                                <include>**</include>
+                            </includes>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
+
+                    </filesets>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>main-class-placement</id>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <target>
+                                <move todir="src/main/resources/static">
+                                    <fileset dir="../influxdb-frontend/static">
+                                        <include name="*.*"/>
+                                    </fileset>
+                                </move>
+
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass></mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+
+</project>

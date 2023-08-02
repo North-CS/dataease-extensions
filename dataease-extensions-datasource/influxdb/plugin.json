@@ -1,0 +1,13 @@
+{
+    "name":"InfluxDB 数据源插件",
+    "free":0,
+    "store":"thirdpart",
+    "cost":0,
+    "category":"datasource",
+    "descript":"InfluxDB 插件，值得拥有",
+    "version":"1.0-SNAPSHOT",
+    "creator":"DATAEASE",
+    "moduleName":"influxdb-backend",
+    "require":"1.12.0",
+    "dsType":"influxdb"
+}
