@@ -7,10 +7,10 @@ public class DremioConstants extends SQLConstants {
     public static final String KEYWORD_FIX= "%s.\"%s\"";
     public static final String ALIAS_FIX = "%s";
     public static final String UNIX_TIMESTAMP = "UNIX_TIMESTAMP(%s)";
-    public static final String DATE_FORMAT = "TO_CHAR(%s,'%s')";
+    public static final String DATE_FORMAT = "TO_CHAR(CAST(%s AS DATE),'%s')";
     public static final String DATE_FORMAT_TO_CHAR = "TO_CHAR(%s,'%s')";
     public static final String FROM_UNIXTIME = "FROM_UNIXTIME(%s,'%s')";
-//    public static final String STR_TO_DATE = "STR_TO_DATE(%s,'%s')";
+    
     public static final String STR_TO_DATE = "TO_DATE(%s,'%s')";
     public static final String CAST = "CAST(%s AS %s)";
     public static final String DEFAULT_DATE_FORMAT = "yyyy-MM-dd hh:mm:ss";
