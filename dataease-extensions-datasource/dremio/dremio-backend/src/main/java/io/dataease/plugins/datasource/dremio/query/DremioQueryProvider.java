@@ -195,7 +195,7 @@ public class DremioQueryProvider extends QueryProvider {
                         fieldName = String.format(DremioConstants.CAST, originField, DremioConstants.DEFAULT_FLOAT_FORMAT);
                     } else if (f.getDeType() == 1) {
                         fieldName = StringUtils.isEmpty(f.getDateFormat()) ? String.format(DremioConstants.STR_TO_DATE, originField, DremioConstants.DEFAULT_DATE_FORMAT) :
-                                String.format(DremioConstants.DATE_FORMAT_TO_CHAR, String.format(DremioConstants.STR_TO_DATE, originField, f.getDateFormat()), DremioConstants.DEFAULT_DATE_FORMAT);
+                                String.format(DremioConstants.DATE_FORMAT_TO_CHAR, String.format(DremioConstants.STR_TO_DATE, originField, f.getDateFormat()), f.getDateFormat());
                     } else {
                         fieldName = originField;
                     }
