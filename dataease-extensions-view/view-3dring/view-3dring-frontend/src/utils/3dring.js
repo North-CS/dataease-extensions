@@ -23,7 +23,7 @@ export const DEFAULT_SIZE = {
   lineSmooth: true,
   lineArea: false,
   pieInnerRadius: 0,
-  pieOuterRadius: 80,
+  pieOuterRadius: 60,
   pieRoseType: 'radius',
   pieRoseRadius: 5,
   funnelWidth: 80,
@@ -166,7 +166,9 @@ export const BASE_PIE = {
   subtitle: {
     text: ''
   },
-  legend: {},
+  legend: {
+    enabled: false,
+  },
   plotOptions: {
     pie: {
       innerSize: 100,
@@ -193,13 +195,10 @@ export const BASE_PIE = {
 
 let terminalType = 'pc'
 export function basePieOption(chart_option, chart, terminal = 'pc') {
-  console.log('chart_option', chart_option);
-  console.log('chart', chart);
   terminalType = terminal
   let customAttr = {}
   if (chart.customAttr) {
     customAttr = JSON.parse(chart.customAttr)
-    console.log('customAttr', customAttr);
     if (customAttr.color) {
       chart_option.colors = customAttr.color.colors
     }
@@ -207,7 +206,6 @@ export function basePieOption(chart_option, chart, terminal = 'pc') {
     // tooltip
     if (customAttr.tooltip) {
       const tooltip = JSON.parse(JSON.stringify(customAttr.tooltip));
-      console.log('customAttr.tooltip', tooltip);
       const reg = new RegExp('\n', 'g')
       tooltip.formatter = tooltip.formatter.replace(reg, '<br/>')
 
@@ -226,7 +224,6 @@ export function basePieOption(chart_option, chart, terminal = 'pc') {
     }
 
     if (customAttr.size) {
-      console.log('customAttr.size', customAttr.size);
       // 内径大小
       chart_option.plotOptions.pie.innerSize = customAttr.size.pieInnerRadius;
       // 深度
@@ -278,10 +275,9 @@ export function basePieOption(chart_option, chart, terminal = 'pc') {
   return chart_option
 }
 export function componentStyle(chart_option, chart) {
-  const padding = '8px'
+  const padding = '8px';
   if (chart.customStyle) {
     const customStyle = JSON.parse(chart.customStyle)
-
     if (customStyle.text) {
       chart_option.title.text = customStyle.text.show ? chart.title : ''
       const style = chart_option.title.style ? chart_option.title.style : {}
@@ -297,6 +293,7 @@ export function componentStyle(chart_option, chart) {
     if (customStyle.legend && chart_option.legend) {
       chart_option.plotOptions.pie.showInLegend = customStyle.legend.show
       // chart_option.legend.padding = padding
+      chart_option.legend.enabled = customStyle.legend.show;
       chart_option.legend.layout = customStyle.legend.orient
       chart_option.legend.verticalAlign = customStyle.legend.vPosition
       chart_option.legend.align = customStyle.legend.hPosition
@@ -306,7 +303,6 @@ export function componentStyle(chart_option, chart) {
     }
 
     if (customStyle.background) {
-
       chart_option.chart.backgroundColor = hexColorToRGBA(customStyle.background.color, customStyle.background.alpha)
     }
   }

@@ -35,7 +35,7 @@ export const DEFAULT_SIZE = {
   lineSymbolSize: 4,
   lineSmooth: true,
   lineArea: false,
-  pieInnerRadius: 100,
+  pieInnerRadius: 0,
   pieOuterRadius: 60,
   pieRoseType: 'radius',
   pieRoseRadius: 5,

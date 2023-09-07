@@ -90,23 +90,10 @@ export default {
     }
   },
   mounted() {
-    this.initField()
     this.init()
     this.initData()
   },
   methods: {
-    initField() {
-      this.quotaData = this.quotaFields.filter(ele => !ele.chartId && ele.id !== 'count')
-      if (this.sizeForm.gaugeMinField.id) {
-        this.minField = this.getQuotaField(this.sizeForm.gaugeMinField.id)
-      }
-      if (this.sizeForm.gaugeMaxField.id) {
-        this.maxField = this.getQuotaField(this.sizeForm.gaugeMaxField.id)
-      }
-      if (this.sizeForm.liquidMaxField.id) {
-        this.liquidMaxField = this.getQuotaField(this.sizeForm.liquidMaxField.id)
-      }
-    },
     initData() {
       const chart = JSON.parse(JSON.stringify(this.chart))
       if (chart.customAttr) {
