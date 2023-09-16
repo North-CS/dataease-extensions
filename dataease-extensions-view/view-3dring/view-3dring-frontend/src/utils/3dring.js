@@ -23,6 +23,8 @@ export const DEFAULT_SIZE = {
   lineSmooth: true,
   lineArea: false,
   pieInnerRadius: 0,
+  innerSize: 45,
+  ringDepth: 30,
   pieOuterRadius: 60,
   pieRoseType: 'radius',
   pieRoseRadius: 5,
@@ -99,7 +101,7 @@ export const DEFAULT_SIZE = {
   mapLineAnimateDuration: 3,
   mapLineAnimateInterval: 1,
   mapLineAnimateTrailLength: 1
-}
+};
 
 export const COLOR_PANEL = [
   '#ff4500',
@@ -189,7 +191,10 @@ export const BASE_PIE = {
   series: [{
     name: '',
     data: []
-  }]
+  }],
+  credits: {
+    enabled: false //去掉Highcharts.com地址
+  },
 }
 
 
@@ -225,9 +230,9 @@ export function basePieOption(chart_option, chart, terminal = 'pc') {
 
     if (customAttr.size) {
       // 内径大小
-      chart_option.plotOptions.pie.innerSize = customAttr.size.pieInnerRadius;
+      chart_option.plotOptions.pie.innerSize = customAttr.size.innerSize;
       // 深度
-      chart_option.plotOptions.pie.depth = customAttr.size.pieOuterRadius;
+      chart_option.plotOptions.pie.depth = customAttr.size.ringDepth;
     }
 
     // label

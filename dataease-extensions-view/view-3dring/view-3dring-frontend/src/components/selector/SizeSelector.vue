@@ -13,7 +13,7 @@
           class="form-item form-item-slider"
         >
           <el-slider
-            v-model="sizeForm.pieInnerRadius"
+            v-model="sizeForm.innerSize"
             show-input
             :show-input-controls="false"
             input-size="mini"
@@ -27,7 +27,7 @@
           class="form-item form-item-slider"
         >
           <el-slider
-            v-model="sizeForm.pieOuterRadius"
+            v-model="sizeForm.ringDepth"
             show-input
             :show-input-controls="false"
             input-size="mini"
@@ -81,13 +81,13 @@ export default {
   watch: {
     'chart': {
       handler: function() {
-        this.initField()
+        // this.initField()
         this.initData()
       }
     },
-    'quotaFields': function() {
-      this.initField()
-    }
+    // 'quotaFields': function() {
+    //   this.initField()
+    // }
   },
   mounted() {
     this.init()

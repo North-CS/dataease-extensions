@@ -35,8 +35,10 @@ export const DEFAULT_SIZE = {
   lineSymbolSize: 4,
   lineSmooth: true,
   lineArea: false,
-  pieInnerRadius: 0,
-  pieOuterRadius: 60,
+  pieInnerRadius: 45,
+  innerSize: 45,
+  ringDepth: 30,
+  pieOuterRadius: 30,
   pieRoseType: 'radius',
   pieRoseRadius: 5,
   funnelWidth: 80,
@@ -112,7 +114,7 @@ export const DEFAULT_SIZE = {
   mapLineAnimateDuration: 3,
   mapLineAnimateInterval: 1,
   mapLineAnimateTrailLength: 1
-}
+};
 
 export const DEFAULT_LABEL = {
     show: false,

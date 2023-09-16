@@ -216,11 +216,11 @@ export const BASE_PIE = {
       style: {}
     },
     // 间隔
-    tickInterval:1,
+    tickInterval: 1,
     // 网格线宽度
-    gridLineWidth:1,
+    gridLineWidth: 1,
     // 网格线颜色
-    gridLineColor:'#C0C0C0',
+    gridLineColor: '#C0C0C0',
     // 网格线条样式 Solid、Dot、Dash
     gridLineDashStyle: 'Dot',
     tickWidth: 0,
@@ -247,7 +247,10 @@ export const BASE_PIE = {
     gridLineColor: '#C0C0C0',
     opposite: true,
   },
-}
+  credits: {
+    enabled: false //去掉Highcharts.com地址
+  },
+};
 
 
 let terminalType = 'pc'

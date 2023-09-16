@@ -53,6 +53,18 @@
         return this.trackBarStyle
       },
       chart() {
+        console.log('this.obj:', this.obj);
+        if (this.obj.chart && this.obj.chart.customAttr) {
+          let customAttr = this.obj.chart.customAttr;
+          let customAttrObj = JSON.parse(customAttr);
+          if (!customAttrObj.size.hasOwnProperty('innerSize')) {
+            customAttrObj.size.innerSize = 45;
+          }
+          if (!customAttrObj.size.hasOwnProperty('ringDepth')) {
+            customAttrObj.size.ringDepth = 30;
+          }
+          this.obj.chart.customAttr = JSON.stringify(customAttrObj);
+        }
         return this.obj.chart
       },
       filter() {
