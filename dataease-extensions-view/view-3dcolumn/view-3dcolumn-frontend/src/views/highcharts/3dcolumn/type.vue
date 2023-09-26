@@ -13,7 +13,7 @@ import messages from '@/de-base/lang/messages'
   export default {
     data() {
       return {
-        value: '3d-ber'
+        value: '3d-column'
       }
     },
     computed: {

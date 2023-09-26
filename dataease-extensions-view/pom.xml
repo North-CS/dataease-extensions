@@ -15,7 +15,7 @@
         <module>view-symbolmap</module>
         <module>view-sankey</module>
         <module>view-3dring</module>
-        <module>view-3dber</module>
+        <module>view-3dcolumn</module>
     </modules>
 
     <artifactId>dataease-extensions-view</artifactId>

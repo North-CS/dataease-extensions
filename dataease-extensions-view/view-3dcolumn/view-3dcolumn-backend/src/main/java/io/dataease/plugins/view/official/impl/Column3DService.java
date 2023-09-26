@@ -13,9 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class Ber3DService extends ViewPluginService {
+public class Column3DService extends ViewPluginService {
 
-    private static final String VIEW_TYPE_VALUE = "3d-ber";
+    private static final String VIEW_TYPE_VALUE = "3d-column";
     /*下版这些常量移到sdk*/
     private static final String TYPE = "-type";
     private static final String DATA = "-data";
@@ -65,7 +65,7 @@ public class Ber3DService extends ViewPluginService {
 
     private StaticResource pluginSvg() {
         StaticResource staticResource = new StaticResource();
-        staticResource.setName("view-3dber-backend");
+        staticResource.setName("view-3dcolumn-backend");
         staticResource.setSuffix("svg");
         return staticResource;
     }

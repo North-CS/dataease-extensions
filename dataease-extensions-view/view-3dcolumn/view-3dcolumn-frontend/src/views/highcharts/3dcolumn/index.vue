@@ -18,7 +18,7 @@
   Highcharts3D(highcharts);
 
 
-  import {BASE_PIE, basePieOption, uuid} from '@/utils/3dber'
+  import {BASE_PIE, basePieOption, uuid} from '@/utils/3dcolumn'
   import ViewTrackBar from '@/components/views/ViewTrackBar'
   export default {
     name: 'ChartComponent',
@@ -54,7 +54,7 @@
       },
       chart() {
         // console.log('this.obj:', this.obj);
-        this.obj.chart.type = 'bidirectional-bar';
+        this.obj.chart.type = '3d-column';
         if (this.obj.chart && this.obj.chart.customAttr) {
           let customAttr = this.obj.chart.customAttr;
           let customAttrObj = JSON.parse(customAttr);

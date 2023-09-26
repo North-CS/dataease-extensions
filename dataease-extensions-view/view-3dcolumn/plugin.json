@@ -7,7 +7,7 @@
     "descript": "High Chart 3D 柱状图插件",
     "version": "1.18.9",
     "creator": "DATAEASE",
-    "moduleName": "view-3dber-backend",
+    "moduleName": "view-3dcolumn-backend",
     "require": "1.10.0",
     "dsType": ""
 }

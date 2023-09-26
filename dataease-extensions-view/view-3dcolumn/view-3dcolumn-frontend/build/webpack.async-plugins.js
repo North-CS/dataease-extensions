@@ -12,10 +12,10 @@ module.exports = {
     entry: {
 
     // PluginDemo: resolve('/src/views/PluginDemo.vue')
-    '3d-ber-view': resolve('/src/views/highcharts/3dber/index.vue'),
-    '3d-ber-data': resolve('/src/views/highcharts/3dber/data.vue'),
-    '3d-ber-type': resolve('/src/views/highcharts/3dber/type.vue'),
-    '3d-ber-style': resolve('/src/views/highcharts/3dber/style.vue')
+    '3d-column-view': resolve('/src/views/highcharts/3dcolumn/index.vue'),
+    '3d-column-data': resolve('/src/views/highcharts/3dcolumn/data.vue'),
+    '3d-column-type': resolve('/src/views/highcharts/3dcolumn/type.vue'),
+    '3d-column-style': resolve('/src/views/highcharts/3dcolumn/style.vue')
 
   },
   output: {
