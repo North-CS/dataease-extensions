@@ -53,7 +53,7 @@
         return this.trackBarStyle
       },
       chart() {
-        console.log('this.obj:', this.obj);
+        // console.log('this.obj:', this.obj);
         if (this.obj.chart && this.obj.chart.customAttr) {
           let customAttr = this.obj.chart.customAttr;
           let customAttrObj = JSON.parse(customAttr);
@@ -62,6 +62,9 @@
           }
           if (!customAttrObj.size.hasOwnProperty('ringDepth')) {
             customAttrObj.size.ringDepth = 30;
+          }
+          if (!customAttrObj.label.hasOwnProperty('digit')) {
+            customAttrObj.label.digit = 0;
           }
           this.obj.chart.customAttr = JSON.stringify(customAttrObj);
         }
@@ -83,7 +86,7 @@
     watch: {
       chart: {
         handler(newVal, oldVla) {
-            console.log('chart is change')
+            // console.log('chart is change')
           this.preDraw()
         },
         deep: true

@@ -117,16 +117,17 @@ export const DEFAULT_SIZE = {
 };
 
 export const DEFAULT_LABEL = {
-    show: false,
-    position: 'top',
-    color: '#909399',
-    fontSize: '10',
-    formatter: '{b} {c}',
-    gaugeFormatter: '{value}',
-    labelLine: {
-      show: true
-    }
-  }
+  show: false,
+  position: 'top',
+  color: '#909399',
+  fontSize: '10',
+  formatter: '{b} {c}',
+  gaugeFormatter: '{value}',
+  labelLine: {
+    show: true
+  },
+  digit: 0
+};
   export const DEFAULT_TOOLTIP = {
     show: true,
     trigger: 'item',

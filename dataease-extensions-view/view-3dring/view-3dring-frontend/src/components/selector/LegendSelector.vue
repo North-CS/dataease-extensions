@@ -40,7 +40,7 @@
           <el-form-item :label="$t('chart.text_v_position')" class="form-item">
             <el-radio-group v-model="legendForm.vPosition" size="mini" @change="changeLegendStyle">
               <el-radio-button label="top">{{ $t('chart.text_pos_top') }}</el-radio-button>
-              <el-radio-button label="center">{{ $t('chart.text_pos_center') }}</el-radio-button>
+<!--              <el-radio-button label="center">{{ $t('chart.text_pos_center') }}</el-radio-button>-->
               <el-radio-button label="bottom">{{ $t('chart.text_pos_bottom') }}</el-radio-button>
             </el-radio-group>
           </el-form-item>

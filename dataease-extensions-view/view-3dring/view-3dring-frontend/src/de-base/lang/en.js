@@ -5,5 +5,7 @@ export default {
     angle: 'Angle',
     depth: 'Depth',
     inner_size: 'Inner Radius',
+    digit: 'Decimal place',
+    digit_content: 'This parameter is valid when the content format is percentage',
   }
 }

@@ -5,5 +5,7 @@ export default {
     angle: '角度',
     depth: '深度',
     inner_size: '內徑大小',
+    digit: '小數位數',
+    digit_content: '當內容格式爲百分比時生效',
   }
 }

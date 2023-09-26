@@ -157,7 +157,8 @@ export const BASE_PIE = {
     options3d: {
       enabled: true,
       alpha: 45
-    }
+    },
+    backgroundColor: 'rgba(0,0,0,0)'
   },
   title: {
     text: '',
@@ -237,21 +238,27 @@ export function basePieOption(chart_option, chart, terminal = 'pc') {
 
     // label
     if (customAttr.label) {
-        const dataLabels = {};
-        dataLabels.enabled =  customAttr.label.show;
-        dataLabels.color = customAttr.label.color;
-        dataLabels.style = {color: customAttr.label.color, fontSize: customAttr.label.fontSize};
-        const reg = new RegExp('\n', 'g');
-        let formatter =  customAttr.label.formatter.replace(reg, '<br/>');
-        formatter = formatter.replace('{a}', '{series.name}');
-        formatter = formatter.replace('{b}', '{point.name}');
-        formatter = formatter.replace('{c}', '{point.y}');
-        formatter = formatter.replace('{d', '{point.percentage');
-        dataLabels.format = formatter;
+      const dataLabels = {};
+      dataLabels.enabled = customAttr.label.show;
+      dataLabels.color = customAttr.label.color;
+      dataLabels.style = {color: customAttr.label.color, fontSize: customAttr.label.fontSize};
+      const reg = new RegExp('\n', 'g');
+      let formatter = customAttr.label.formatter.replace(reg, '<br/>');
+      formatter = formatter.replace('{a}', '{series.name}');
+      formatter = formatter.replace('{b}', '{point.name}');
+      formatter = formatter.replace('{c}', '{point.y}');
+      formatter = formatter.replace('{d', '{point.percentage:.'+customAttr.label.digit+'f');
+      // if (customAttr.label.digit) {
+      //
+      // } else {
+      //   formatter = formatter.replace('{d', '{point.percentage:.2f');
+      // }
 
-        chart_option.plotOptions.pie.dataLabels = dataLabels;
+      dataLabels.format = formatter;
 
-      }
+      chart_option.plotOptions.pie.dataLabels = dataLabels;
+
+    }
   }
 
   // 处理data
@@ -276,6 +283,7 @@ export function basePieOption(chart_option, chart, terminal = 'pc') {
     }
   }
 
+  // console.log('chart_option:', chart_option);
   componentStyle(chart_option, chart)
   return chart_option
 }

@@ -168,7 +168,8 @@ export const BASE_PIE = {
       beta: 15,
       depth: 50,
       viewDistance: 25
-    }
+    },
+    backgroundColor: 'rgba(0,0,0,0)'
   },
   title: {
     text: '',
@@ -278,7 +279,7 @@ export function basePieOption(chart_option, chart, terminal = 'pc') {
       chart_option.tooltip.headerFormat = "<small style=\"fontSize:" + tooltip.textStyle.fontSize + "\">{point.y}</small></br>";
 
       let formatter =  tooltip.formatter
-      console.log('formatter:', formatter);
+      // console.log('formatter:', formatter);
       formatter = formatter.replace('{a}', '{series.name}')
       formatter = formatter.replace('{b}', '{point.name}')
       formatter = formatter.replace('{c}', '{point.y}')
@@ -336,7 +337,7 @@ export function basePieOption(chart_option, chart, terminal = 'pc') {
   }
 
   componentStyle(chart_option, chart);
-  console.log('chart_option:', chart_option);
+  // console.log('chart_option:', chart_option);
   return chart_option
 }
 export function componentStyle(chart_option, chart) {

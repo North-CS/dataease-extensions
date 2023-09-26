@@ -53,7 +53,7 @@
         return this.trackBarStyle
       },
       chart() {
-        console.log('this.obj:', this.obj);
+        // console.log('this.obj:', this.obj);
         this.obj.chart.type = 'bidirectional-bar';
         if (this.obj.chart && this.obj.chart.customAttr) {
           let customAttr = this.obj.chart.customAttr;
@@ -101,7 +101,7 @@
     watch: {
       chart: {
         handler(newVal, oldVla) {
-            console.log('chart is change')
+            // console.log('chart is change')
           this.preDraw()
         },
         deep: true
