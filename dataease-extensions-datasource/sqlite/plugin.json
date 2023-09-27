@@ -5,7 +5,7 @@
     "cost":0,
     "category":"datasource",
     "descript":"sqlite插件，值得拥有",
-    "version":"1.18.8",
+    "version":"1.18.9",
     "creator":"DATAEASE",
     "moduleName":"sqlite-backend",
     "require":"1.12.0",
