@@ -1,6 +1,9 @@
 #!/bin/sh
 mvn clean package -U -Dmaven.test.skip=true
 
-cp influxdb-backend/target/influxdb-backend-1.18.4-jar-with-dependencies.jar ./influxdb-backend-1.18.4.jar
+version=`mvn -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec -q`
+cp influxdb-backend/target/influxdb-backend-*-jar-with-dependencies.jar ./influxdb-backend-$version.jar
 
-zip -r influxdb.zip  ./influxdb-backend-1.18.4.jar ./influxdbDriver ./plugin.json
+zip -r influxdb.zip  ./influxdb-backend-*.jar ./influxdbDriver ./plugin.json
+
+rm -f influxdb-backend-*.jar

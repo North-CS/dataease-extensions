@@ -1,6 +1,8 @@
 #!/bin/sh
 mvn clean package
 
-cp maxcompute-backend/target/maxcompute-backend-1.18.0.jar .
+cp maxcompute-backend/target/maxcompute-backend-*.jar .
 
-zip -r maxcompute.zip  ./maxcompute-backend-1.18.0.jar ./maxcomputeDriver   ./plugin.json
+zip -r maxcompute.zip  ./maxcompute-backend-*.jar ./maxcomputeDriver   ./plugin.json
+
+rm -f maxcompute-backend-*.jar

@@ -1,6 +1,8 @@
 #!/bin/sh
 mvn clean package -U -Dmaven.test.skip=true
 
-cp dm-backend/target/dm-backend-1.18.0.jar .
+cp dm-backend/target/dm-backend-*.jar .
 
-zip -r dm.zip  ./dm-backend-1.18.0.jar ./dmDriver   ./plugin.json
+zip -r dm.zip  ./dm-backend-*.jar ./dmDriver   ./plugin.json
+
+rm -f dm-backend-*.jar

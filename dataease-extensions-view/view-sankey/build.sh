@@ -1,8 +1,8 @@
 #!/bin/sh
 mvn clean package
 
-cp view-sankey-backend/target/view-sankey-backend-1.18.9.jar .
+cp view-sankey-backend/target/view-sankey-backend-*.jar .
 
-zip -r sankey.zip  ./view-sankey-backend-1.18.9.jar ./plugin.json
+zip -r sankey.zip  ./view-sankey-backend-*.jar ./plugin.json
 
-rm -f ./view-sankey-backend-1.18.9.jar
+rm -f ./view-sankey-backend-*.jar

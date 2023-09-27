@@ -1,8 +1,8 @@
 #!/bin/sh
 mvn clean package
 
-cp view-3dpie-backend/target/view-3dpie-backend-1.18.9.jar .
+cp view-3dpie-backend/target/view-3dpie-backend-*.jar .
 
-zip -r 3dpie.zip  ./view-3dpie-backend-1.18.9.jar ./plugin.json
+zip -r 3dpie.zip  ./view-3dpie-backend-*.jar ./plugin.json
 
-rm -f ./view-3dpie-backend-1.18.9.jar
+rm -f ./view-3dpie-backend-*.jar

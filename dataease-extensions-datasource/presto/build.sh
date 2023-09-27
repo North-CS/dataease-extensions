@@ -1,6 +1,8 @@
 #!/bin/sh
 mvn clean package
 
-cp presto-backend/target/presto-backend-1.18.0.jar .
+cp presto-backend/target/presto-backend-*.jar .
 
-zip -r presto.zip  ./presto-backend-1.18.0.jar ./prestoDriver   ./plugin.json
+zip -r presto.zip  ./presto-backend-*.jar ./prestoDriver   ./plugin.json
+
+rm -f presto-backend-*.jar
