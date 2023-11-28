@@ -87,90 +87,84 @@ public class TrinoQueryProvider extends QueryProvider {
         return this.createQuerySQL(table, fields, isGroup, ds, fieldCustomFilter, rowPermissionsTree, (List)null);
     }
 
+    @Override
     public String createQuerySQL(String table, List<DatasetTableField> fields, boolean isGroup, Datasource ds, List<ChartFieldCustomFilterDTO> fieldCustomFilter, List<DataSetRowPermissionsTreeDTO> rowPermissionsTree, List<DeSortField> sortFields) {
-        SQLObj tableObj = SQLObj.builder().tableName(table.startsWith("(") && table.endsWith(")") ? table : String.format("%s", table)).tableAlias(String.format("t_a_%s", 0)).build();
-        this.setSchema(tableObj, ds);
-        List<SQLObj> xFields = new ArrayList();
-        String originField;
-        String fieldAlias;
-        if (CollectionUtils.isNotEmpty(fields)) {
-            for(int i = 0; i < fields.size(); ++i) {
-                DatasetTableField f = (DatasetTableField)fields.get(i);
-                if (ObjectUtils.isNotEmpty(f.getExtField()) && f.getExtField() == 2) {
-                    originField = this.calcFieldRegex(f.getOriginName(), tableObj);
-                } else if (ObjectUtils.isNotEmpty(f.getExtField()) && f.getExtField() == 1) {
-                    originField = String.format("%s.%s", tableObj.getTableAlias(), f.getOriginName());
-                } else {
-                    originField = String.format("%s.%s", tableObj.getTableAlias(), f.getOriginName());
-                }
+        SQLObj tableObj = SQLObj.builder()
+                .tableName((table.startsWith("(") && table.endsWith(")")) ? table : String.format(TrinoConstants.KEYWORD_TABLE, table))
+                .tableAlias(String.format(TABLE_ALIAS_PREFIX, 0))
+                .build();
 
-                fieldAlias = String.format("f_ax_%s", i);
+        setSchema(tableObj, ds);
+        List<SQLObj> xFields = new ArrayList<>();
+        if (CollectionUtils.isNotEmpty(fields)) {
+            for (int i = 0; i < fields.size(); i++) {
+                DatasetTableField f = fields.get(i);
+                String originField;
+                if (ObjectUtils.isNotEmpty(f.getExtField()) && f.getExtField() == 2) {
+                    // 解析origin name中有关联的字段生成sql表达式
+                    originField = calcFieldRegex(f.getOriginName(), tableObj);
+                } else if (ObjectUtils.isNotEmpty(f.getExtField()) && f.getExtField() == 1) {
+                    originField = String.format(TrinoConstants.KEYWORD_FIX, tableObj.getTableAlias(), f.getOriginName());
+                } else {
+                    originField = String.format(TrinoConstants.KEYWORD_FIX, tableObj.getTableAlias(), f.getOriginName());
+                }
+                String fieldAlias = String.format(SQLConstants.FIELD_ALIAS_X_PREFIX, i);
                 String fieldName = "";
-                if (f.getDeExtractType().equals(DeTypeConstants.DE_TIME)) {
-                    if (f.getDeType() != DeTypeConstants.DE_INT && f.getDeType() != DeTypeConstants.DE_FLOAT) {
-                        fieldName = originField;
+                // 处理横轴字段
+                if (f.getDeExtractType() == DeTypeConstants.DE_TIME) {
+                    if (f.getDeType() == DeTypeConstants.DE_INT || f.getDeType() == DeTypeConstants.DE_FLOAT) {
+                        fieldName = String.format(TrinoConstants.UNIX_TIMESTAMP, originField);
                     } else {
-                        fieldName = String.format("to_unixtime(%s)", originField);
+                        fieldName = originField;
                     }
                 } else if (f.getDeExtractType() == DeTypeConstants.DE_STRING) {
                     if (f.getDeType() == DeTypeConstants.DE_INT) {
-                        fieldName = String.format("CAST(%s AS %s)", originField, "bigint");
+                        fieldName = String.format(TrinoConstants.CAST, originField, TrinoConstants.DEFAULT_INT_FORMAT);
                     } else if (f.getDeType() == DeTypeConstants.DE_FLOAT) {
-                        fieldName = String.format("CAST(%s AS %s)", originField, "DOUBLE");
+                        fieldName = String.format(TrinoConstants.CAST, originField, TrinoConstants.DEFAULT_FLOAT_FORMAT);
                     } else if (f.getDeType() == DeTypeConstants.DE_TIME) {
-                        fieldName = String.format("date_parse(%s, '%s')", originField, StringUtils.isNotEmpty(f.getDateFormat()) ? f.getDateFormat() : "yyyy-MM-dd HH:mm:ss");
+                        fieldName = String.format(TrinoConstants.date_parse, originField, StringUtils.isNotEmpty(f.getDateFormat()) ? f.getDateFormat() : TrinoConstants.DEFAULT_DATE_FORMAT);
                     } else {
                         fieldName = originField;
                     }
-                } else if (f.getDeType() == DeTypeConstants.DE_TIME) {
-                    fieldName = String.format("format_datetime(%s, '%s')", String.format("from_unixtime(%s)", originField + "/1000"), "yyyy-MM-dd HH:mm:ss");
-                } else if (f.getDeType() == DeTypeConstants.DE_INT) {
-                    fieldName = String.format("CAST(%s AS %s)", originField, "bigint");
                 } else {
-                    fieldName = originField;
+                    if (f.getDeType() == DeTypeConstants.DE_TIME) {
+                        fieldName = String.format(TrinoConstants.FORMAT_DATETIME, String.format(TrinoConstants.FROM_UNIXTIME, originField + "/1000"), TrinoConstants.DEFAULT_DATE_FORMAT);
+                    } else if (f.getDeType() == DeTypeConstants.DE_INT) {
+                        fieldName = String.format(TrinoConstants.CAST, originField, TrinoConstants.DEFAULT_INT_FORMAT);
+                    } else {
+                        fieldName = originField;
+                    }
                 }
-
-                xFields.add(SQLObj.builder().fieldName(fieldName).fieldAlias(fieldAlias).build());
+                xFields.add(SQLObj.builder()
+                        .fieldName(fieldName)
+                        .fieldAlias(fieldAlias)
+                        .build());
             }
         }
 
-        STGroup stg = new STGroupFile("pluginSqltemplate.stg");
+        STGroup stg = new STGroupFile(SQLConstants.SQL_TEMPLATE);
         ST st_sql = stg.getInstanceOf("previewSql");
         st_sql.add("isGroup", isGroup);
-        if (CollectionUtils.isNotEmpty(xFields)) {
-            st_sql.add("groups", xFields);
-        }
+        if (CollectionUtils.isNotEmpty(xFields)) st_sql.add("groups", xFields);
+        if (ObjectUtils.isNotEmpty(tableObj)) st_sql.add("table", tableObj);
+        String customWheres = transCustomFilterList(tableObj, fieldCustomFilter);
+        // row permissions tree
+        String whereTrees = transFilterTrees(tableObj, rowPermissionsTree);
+        List<String> wheres = new ArrayList<>();
+        if (customWheres != null) wheres.add(customWheres);
+        if (whereTrees != null) wheres.add(whereTrees);
+        if (CollectionUtils.isNotEmpty(wheres)) st_sql.add("filters", wheres);
 
-        if (ObjectUtils.isNotEmpty(tableObj)) {
-            st_sql.add("table", tableObj);
-        }
-
-        originField = this.transCustomFilterList(tableObj, fieldCustomFilter);
-        fieldAlias = this.transFilterTrees(tableObj, rowPermissionsTree);
-        List<String> wheres = new ArrayList();
-        if (originField != null) {
-            wheres.add(originField);
-        }
-
-        if (fieldAlias != null) {
-            wheres.add(fieldAlias);
-        }
-
-        if (CollectionUtils.isNotEmpty(wheres)) {
-            st_sql.add("filters", wheres);
-        }
-
-        List<SQLObj> xOrders = new ArrayList();
+        List<SQLObj> xOrders = new ArrayList<>();
         if (CollectionUtils.isNotEmpty(sortFields)) {
             int step = fields.size();
-
-            for(int i = step; i < step + sortFields.size(); ++i) {
-                DeSortField deSortField = (DeSortField)sortFields.get(i - step);
-                SQLObj order = this.buildSortField(deSortField, tableObj, i);
+            for (int i = step; i < (step + sortFields.size()); i++) {
+                DeSortField deSortField = sortFields.get(i - step);
+                SQLObj order = buildSortField(deSortField, tableObj, i);
                 xOrders.add(order);
             }
         }
-
         if (ObjectUtils.isNotEmpty(xOrders)) {
             st_sql.add("orders", xOrders);
         }
@@ -178,36 +172,45 @@ public class TrinoQueryProvider extends QueryProvider {
         return st_sql.render();
     }
 
+
     private SQLObj buildSortField(DeSortField f, SQLObj tableObj, int i) {
         String originField;
         if (ObjectUtils.isNotEmpty(f.getExtField()) && f.getExtField() == 2) {
-            originField = this.calcFieldRegex(f.getOriginName(), tableObj);
+            // 解析origin name中有关联的字段生成sql表达式
+            originField = calcFieldRegex(f.getOriginName(), tableObj);
         } else if (ObjectUtils.isNotEmpty(f.getExtField()) && f.getExtField() == 1) {
-            originField = String.format("%s.%s", tableObj.getTableAlias(), f.getOriginName());
+            originField = String.format(TrinoConstants.KEYWORD_FIX, tableObj.getTableAlias(), f.getOriginName());
         } else {
-            originField = String.format("%s.%s", tableObj.getTableAlias(), f.getOriginName());
+            originField = String.format(TrinoConstants.KEYWORD_FIX, tableObj.getTableAlias(), f.getOriginName());
         }
-
-        String fieldAlias = String.format("f_ax_%s", i);
+        String fieldAlias = String.format(SQLConstants.FIELD_ALIAS_X_PREFIX, i);
         String fieldName = "";
+        // 处理横轴字段
         if (f.getDeExtractType() == DeTypeConstants.DE_TIME) {
             if (f.getDeType() == DeTypeConstants.DE_INT || f.getDeType() == DeTypeConstants.DE_FLOAT) {
-                fieldName = String.format("to_unixtime(%s)", originField);
+                fieldName = String.format(TrinoConstants.UNIX_TIMESTAMP, originField);
+            } else {
+                fieldName = originField;
             }
         } else if (f.getDeExtractType() == DeTypeConstants.DE_STRING) {
             if (f.getDeType() == DeTypeConstants.DE_INT) {
-                fieldName = String.format("CAST(%s AS %s)", originField, "bigint");
+                fieldName = String.format(TrinoConstants.CAST, originField, TrinoConstants.DEFAULT_INT_FORMAT);
             } else if (f.getDeType() == DeTypeConstants.DE_FLOAT) {
-                fieldName = String.format("CAST(%s AS %s)", originField, "DOUBLE");
+                fieldName = String.format(TrinoConstants.CAST, originField, TrinoConstants.DEFAULT_FLOAT_FORMAT);
             } else if (f.getDeType() == DeTypeConstants.DE_TIME) {
-                fieldName = String.format("date_parse(%s, '%s')", originField, StringUtils.isNotEmpty(f.getDateFormat()) ? f.getDateFormat() : "yyyy-MM-dd HH:mm:ss");
+                fieldName = String.format(TrinoConstants.date_parse, originField, StringUtils.isNotEmpty(f.getDateFormat()) ? f.getDateFormat() : TrinoConstants.DEFAULT_DATE_FORMAT);
+            } else {
+                fieldName = originField;
             }
-        } else if (f.getDeType().equals(DeTypeConstants.DE_TIME)) {
-            fieldName = String.format("format_datetime(%s, '%s')", String.format("from_unixtime(%s)", originField + "/1000"), "yyyy-MM-dd HH:mm:ss");
-        } else if (f.getDeType() == DeTypeConstants.DE_INT) {
-            fieldName = String.format("CAST(%s AS %s)", originField, "bigint");
+        } else {
+            if (f.getDeType() == DeTypeConstants.DE_TIME) {
+                fieldName = String.format(TrinoConstants.FORMAT_DATETIME, String.format(TrinoConstants.FROM_UNIXTIME, originField + "/1000"), TrinoConstants.DEFAULT_DATE_FORMAT);
+            } else if (f.getDeType() == DeTypeConstants.DE_INT) {
+                fieldName = String.format(TrinoConstants.CAST, originField, TrinoConstants.DEFAULT_INT_FORMAT);
+            } else {
+                fieldName = originField;
+            }
         }
-
         SQLObj result = SQLObj.builder().orderField(originField).orderAlias(originField).orderDirection(f.getOrderDirection()).build();
         return result;
     }
@@ -343,81 +346,77 @@ public class TrinoQueryProvider extends QueryProvider {
     }
 
     private String originalTableInfo(String table, List<ChartViewFieldDTO> xAxis, List<ChartFieldCustomFilterDTO> fieldCustomFilter, List<DataSetRowPermissionsTreeDTO> rowPermissionsTree, List<ChartExtFilterRequest> extFilterRequestList, Datasource ds, ChartViewWithBLOBs view) {
-        SQLObj tableObj = SQLObj.builder().tableName(table.startsWith("(") && table.endsWith(")") ? table : String.format("%s", table)).tableAlias(String.format("t_a_%s", 0)).build();
-        this.setSchema(tableObj, ds);
-        List<SQLObj> xFields = new ArrayList();
-        List<SQLObj> xOrders = new ArrayList();
-        String originField;
+        SQLObj tableObj = SQLObj.builder()
+                .tableName((table.startsWith("(") && table.endsWith(")")) ? table : String.format(TrinoConstants.KEYWORD_TABLE, table))
+                .tableAlias(String.format(TABLE_ALIAS_PREFIX, 0))
+                .build();
+        setSchema(tableObj, ds);
+        List<SQLObj> xFields = new ArrayList<>();
+        List<SQLObj> xOrders = new ArrayList<>();
         if (CollectionUtils.isNotEmpty(xAxis)) {
-            for(int i = 0; i < xAxis.size(); ++i) {
-                ChartViewFieldDTO x = (ChartViewFieldDTO)xAxis.get(i);
+            for (int i = 0; i < xAxis.size(); i++) {
+                ChartViewFieldDTO x = xAxis.get(i);
+                String originField;
                 if (ObjectUtils.isNotEmpty(x.getExtField()) && x.getExtField() == 2) {
-                    originField = this.calcFieldRegex(x.getOriginName(), tableObj);
+                    // 解析origin name中有关联的字段生成sql表达式
+                    originField = calcFieldRegex(x.getOriginName(), tableObj);
                 } else if (ObjectUtils.isNotEmpty(x.getExtField()) && x.getExtField() == 1) {
-                    originField = String.format("%s.%s", tableObj.getTableAlias(), x.getOriginName());
-                } else if (x.getDeType() != 2 && x.getDeType() != 3) {
-                    originField = String.format("%s.%s", tableObj.getTableAlias(), x.getOriginName());
+                    originField = String.format(TrinoConstants.KEYWORD_FIX, tableObj.getTableAlias(), x.getOriginName());
                 } else {
-                    originField = String.format("CAST(%s AS %s)", String.format("%s.%s", tableObj.getTableAlias(), x.getOriginName()), "DOUBLE");
+                    if (x.getDeType() == 2 || x.getDeType() == 3) {
+                        originField = String.format(TrinoConstants.CAST, String.format(TrinoConstants.KEYWORD_FIX, tableObj.getTableAlias(), x.getOriginName()), TrinoConstants.DEFAULT_FLOAT_FORMAT);
+                    } else {
+                        originField = String.format(TrinoConstants.KEYWORD_FIX, tableObj.getTableAlias(), x.getOriginName());
+                    }
                 }
-
-                String fieldAlias = String.format("f_ax_%s", i);
-                xFields.add(this.getXFields(x, originField, fieldAlias));
+                String fieldAlias = String.format(SQLConstants.FIELD_ALIAS_X_PREFIX, i);
+                // 处理横轴字段
+                xFields.add(getXFields(x, originField, fieldAlias));
+                // 处理横轴排序
                 if (StringUtils.isNotEmpty(x.getSort()) && !StringUtils.equalsIgnoreCase(x.getSort(), "none")) {
-                    xOrders.add(SQLObj.builder().orderField(originField).orderAlias(fieldAlias).orderDirection(x.getSort()).build());
+                    xOrders.add(SQLObj.builder()
+                            .orderField(originField)
+                            .orderAlias(fieldAlias)
+                            .orderDirection(x.getSort())
+                            .build());
                 }
             }
         }
-
-        String customWheres = this.transCustomFilterList(tableObj, fieldCustomFilter);
-        String extWheres = this.transExtFilterList(tableObj, extFilterRequestList);
-        originField = this.transFilterTrees(tableObj, rowPermissionsTree);
-        List<SQLObj> fields = new ArrayList();
+        // 处理视图中字段过滤
+        String customWheres = transCustomFilterList(tableObj, fieldCustomFilter);
+        // 处理仪表板字段过滤
+        String extWheres = transExtFilterList(tableObj, extFilterRequestList);
+        // row permissions tree
+        String whereTrees = transFilterTrees(tableObj, rowPermissionsTree);
+        // 构建sql所有参数
+        List<SQLObj> fields = new ArrayList<>();
         fields.addAll(xFields);
-        List<String> wheres = new ArrayList();
-        if (customWheres != null) {
-            wheres.add(customWheres);
-        }
-
-        if (extWheres != null) {
-            wheres.add(extWheres);
-        }
-
-        if (originField != null) {
-            wheres.add(originField);
-        }
-
-        List<SQLObj> groups = new ArrayList();
+        List<String> wheres = new ArrayList<>();
+        if (customWheres != null) wheres.add(customWheres);
+        if (extWheres != null) wheres.add(extWheres);
+        if (whereTrees != null) wheres.add(whereTrees);
+        List<SQLObj> groups = new ArrayList<>();
         groups.addAll(xFields);
-        List<SQLObj> orders = new ArrayList();
+        // 外层再次套sql
+        List<SQLObj> orders = new ArrayList<>();
         orders.addAll(xOrders);
-        STGroup stg = new STGroupFile("pluginSqltemplate.stg");
+
+        STGroup stg = new STGroupFile(SQLConstants.SQL_TEMPLATE);
         ST st_sql = stg.getInstanceOf("previewSql");
         st_sql.add("isGroup", false);
-        if (CollectionUtils.isNotEmpty(xFields)) {
-            st_sql.add("groups", xFields);
-        }
-
-        if (CollectionUtils.isNotEmpty(wheres)) {
-            st_sql.add("filters", wheres);
-        }
-
-        if (ObjectUtils.isNotEmpty(tableObj)) {
-            st_sql.add("table", tableObj);
-        }
-
+        if (CollectionUtils.isNotEmpty(xFields)) st_sql.add("groups", xFields);
+        if (CollectionUtils.isNotEmpty(wheres)) st_sql.add("filters", wheres);
+        if (ObjectUtils.isNotEmpty(tableObj)) st_sql.add("table", tableObj);
         String sql = st_sql.render();
+
         ST st = stg.getInstanceOf("previewSql");
         st.add("isGroup", false);
-        SQLObj tableSQL = SQLObj.builder().tableName(String.format("(%s)", sql)).tableAlias(String.format("t_a_%s", 1)).build();
-        if (CollectionUtils.isNotEmpty(orders)) {
-            st.add("orders", orders);
-        }
-
-        if (ObjectUtils.isNotEmpty(tableSQL)) {
-            st.add("table", tableSQL);
-        }
-
+        SQLObj tableSQL = SQLObj.builder()
+                .tableName(String.format(TrinoConstants.BRACKETS, sql))
+                .tableAlias(String.format(TABLE_ALIAS_PREFIX, 1))
+                .build();
+        if (CollectionUtils.isNotEmpty(orders)) st.add("orders", orders);
+        if (ObjectUtils.isNotEmpty(tableSQL)) st.add("table", tableSQL);
         return st.render();
     }
 
@@ -785,84 +784,79 @@ public class TrinoQueryProvider extends QueryProvider {
         return this.createRawQuerySQL(" (" + this.sqlFix(sql) + ") AS tmp ", fields, (Datasource)null);
     }
 
+    @Override
     public String transTreeItem(SQLObj tableObj, DatasetRowPermissionsTreeItem item) {
         String res = null;
         DatasetTableField field = item.getField();
         if (ObjectUtils.isEmpty(field)) {
             return null;
-        } else {
-            String whereName = "";
-            String originName;
-            if (ObjectUtils.isNotEmpty(field.getExtField()) && field.getExtField() == 2) {
-                originName = this.calcFieldRegex(field.getOriginName(), tableObj);
-            } else if (ObjectUtils.isNotEmpty(field.getExtField()) && field.getExtField() == 1) {
-                originName = String.format("%s.%s", tableObj.getTableAlias(), field.getOriginName());
-            } else {
-                originName = String.format("%s.%s", tableObj.getTableAlias(), field.getOriginName());
-            }
-
-            String value;
-            if (field.getDeType() == 1) {
-                if (field.getDeExtractType() == 0 || field.getDeExtractType() == 5) {
-                    whereName = String.format("CAST(%s AS %s)", originName, "timestamp");
-                }
-
-                if (field.getDeExtractType() == 2 || field.getDeExtractType() == 3 || field.getDeExtractType() == 4) {
-                    value = String.format("CAST(%s AS %s)", originName, "bigint");
-                    whereName = String.format("from_unixtime(%s)", value);
-                }
-
-                if (field.getDeExtractType() == 1) {
-                    whereName = originName;
-                }
-            } else if (field.getDeType() != 2 && field.getDeType() != 3) {
-                whereName = originName;
-            } else {
-                if (field.getDeExtractType() == 0 || field.getDeExtractType() == 5) {
-                    whereName = String.format("CAST(%s AS %s)", originName, "DOUBLE");
-                }
-
-                if (field.getDeExtractType() == 1) {
-                    whereName = String.format("to_unixtime(%s)", originName);
-                }
-
-                if (field.getDeExtractType() == 2 || field.getDeExtractType() == 3 || field.getDeExtractType() == 4) {
-                    whereName = originName;
-                }
-            }
-
-            if (StringUtils.equalsIgnoreCase(item.getFilterType(), "enum")) {
-                if (CollectionUtils.isNotEmpty(item.getEnumValue())) {
-                    res = "(" + whereName + " IN ('" + String.join("','", item.getEnumValue()) + "'))";
-                }
-            } else {
-                value = item.getValue();
-                String whereTerm = this.transMysqlFilterTerm(item.getTerm());
-                String whereValue = "";
-                if (StringUtils.equalsIgnoreCase(item.getTerm(), "null")) {
-                    whereValue = "";
-                } else if (StringUtils.equalsIgnoreCase(item.getTerm(), "not_null")) {
-                    whereValue = "";
-                } else if (StringUtils.equalsIgnoreCase(item.getTerm(), "empty")) {
-                    whereValue = "''";
-                } else if (StringUtils.equalsIgnoreCase(item.getTerm(), "not_empty")) {
-                    whereValue = "''";
-                } else if (!StringUtils.containsIgnoreCase(item.getTerm(), "in") && !StringUtils.containsIgnoreCase(item.getTerm(), "not in")) {
-                    if (StringUtils.containsIgnoreCase(item.getTerm(), "like")) {
-                        whereValue = "'%" + value + "%'";
-                    } else {
-                        whereValue = String.format("'%s'", value);
-                    }
-                } else {
-                    whereValue = "('" + String.join("','", value.split(",")) + "')";
-                }
-
-                SQLObj build = SQLObj.builder().whereField(whereName).whereTermAndValue(whereTerm + whereValue).build();
-                res = build.getWhereField() + " " + build.getWhereTermAndValue();
-            }
-
-            return res;
         }
+        String whereName = "";
+        String originName;
+        if (ObjectUtils.isNotEmpty(field.getExtField()) && field.getExtField() == 2) {
+            // 解析origin name中有关联的字段生成sql表达式
+            originName = calcFieldRegex(field.getOriginName(), tableObj);
+        } else if (ObjectUtils.isNotEmpty(field.getExtField()) && field.getExtField() == 1) {
+            originName = String.format(TrinoConstants.KEYWORD_FIX, tableObj.getTableAlias(), field.getOriginName());
+        } else {
+            originName = String.format(TrinoConstants.KEYWORD_FIX, tableObj.getTableAlias(), field.getOriginName());
+        }
+        if (field.getDeType() == 1) {
+            if (field.getDeExtractType() == 0 || field.getDeExtractType() == 5) {
+                whereName = String.format(TrinoConstants.CAST, originName, "timestamp");
+            }
+            if (field.getDeExtractType() == 2 || field.getDeExtractType() == 3 || field.getDeExtractType() == 4) {
+                String cast = String.format(TrinoConstants.CAST, originName, "bigint");
+                whereName = String.format(TrinoConstants.FROM_UNIXTIME, cast);
+            }
+            if (field.getDeExtractType() == 1) {
+                whereName = originName;
+            }
+        } else if (field.getDeType() == 2 || field.getDeType() == 3) {
+            if (field.getDeExtractType() == 0 || field.getDeExtractType() == 5) {
+                whereName = String.format(TrinoConstants.CAST, originName, TrinoConstants.DEFAULT_FLOAT_FORMAT);
+            }
+            if (field.getDeExtractType() == 1) {
+                whereName = String.format(TrinoConstants.UNIX_TIMESTAMP, originName);
+            }
+            if (field.getDeExtractType() == 2 || field.getDeExtractType() == 3 || field.getDeExtractType() == 4) {
+                whereName = originName;
+            }
+        } else {
+            whereName = originName;
+        }
+
+        if (StringUtils.equalsIgnoreCase(item.getFilterType(), "enum")) {
+            if (CollectionUtils.isNotEmpty(item.getEnumValue())) {
+                res = "(" + whereName + " IN ('" + String.join("','", item.getEnumValue()) + "'))";
+            }
+        } else {
+            String value = item.getValue();
+            String whereTerm = transMysqlFilterTerm(item.getTerm());
+            String whereValue = "";
+
+            if (StringUtils.equalsIgnoreCase(item.getTerm(), "null")) {
+                whereValue = "";
+            } else if (StringUtils.equalsIgnoreCase(item.getTerm(), "not_null")) {
+                whereValue = "";
+            } else if (StringUtils.equalsIgnoreCase(item.getTerm(), "empty")) {
+                whereValue = "''";
+            } else if (StringUtils.equalsIgnoreCase(item.getTerm(), "not_empty")) {
+                whereValue = "''";
+            } else if (StringUtils.containsIgnoreCase(item.getTerm(), "in") || StringUtils.containsIgnoreCase(item.getTerm(), "not in")) {
+                whereValue = "('" + String.join("','", value.split(",")) + "')";
+            } else if (StringUtils.containsIgnoreCase(item.getTerm(), "like")) {
+                whereValue = "'%" + value + "%'";
+            } else {
+                whereValue = String.format(TrinoConstants.WHERE_VALUE_VALUE, value);
+            }
+            SQLObj build = SQLObj.builder()
+                    .whereField(whereName)
+                    .whereTermAndValue(whereTerm + whereValue)
+                    .build();
+            res = build.getWhereField() + " " + build.getWhereTermAndValue();
+        }
+        return res;
     }
 
     public String convertTableToSql(String tableName, Datasource ds) {
@@ -1000,112 +994,97 @@ public class TrinoQueryProvider extends QueryProvider {
     public String transExtFilterList(SQLObj tableObj, List<ChartExtFilterRequest> requestList) {
         if (CollectionUtils.isEmpty(requestList)) {
             return null;
-        } else {
-            List<SQLObj> list = new ArrayList();
+        }
+        List<SQLObj> list = new ArrayList<>();
+        for (ChartExtFilterRequest request : requestList) {
+            List<String> value = request.getValue();
 
-            String whereName;
-            String whereTerm;
-            label135:
-            for(Iterator var4 = requestList.iterator(); var4.hasNext(); list.add(SQLObj.builder().whereField(whereName).whereTermAndValue(whereTerm + whereName).build())) {
-                ChartExtFilterRequest request = (ChartExtFilterRequest)var4.next();
-                List<String> value = request.getValue();
-                List<String> whereNameList = new ArrayList();
-                List<DatasetTableField> fieldList = new ArrayList();
-                if (request.getIsTree()) {
-                    fieldList.addAll(request.getDatasetTableFieldList());
-                } else {
-                    fieldList.add(request.getDatasetTableField());
-                }
-
-                Iterator var9 = fieldList.iterator();
-
-                while(true) {
-                    DatasetTableField field;
-                    String cast;
-                    do {
-                        do {
-                            if (!var9.hasNext()) {
-                                whereName = "";
-                                if (request.getIsTree()) {
-                                    whereName = "CONCAT(" + StringUtils.join(whereNameList, ",',',") + ")";
-                                } else {
-                                    whereName = (String)whereNameList.get(0);
-                                }
-
-                                whereTerm = this.transMysqlFilterTerm(request.getOperator());
-                                whereName = "";
-                                if (StringUtils.containsIgnoreCase(request.getOperator(), "in")) {
-                                    whereName = "('" + StringUtils.join(value, "','") + "')";
-                                } else if (StringUtils.containsIgnoreCase(request.getOperator(), "like")) {
-                                    whereName = "'%" + (String)value.get(0) + "%'";
-                                } else if (StringUtils.containsIgnoreCase(request.getOperator(), "between")) {
-                                    if (request.getDatasetTableField().getDeType() == 1) {
-                                        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                                        cast = simpleDateFormat.format(new Date(Long.parseLong((String)value.get(0))));
-                                        String endTime = simpleDateFormat.format(new Date(Long.parseLong((String)value.get(1))));
-                                        whereName = String.format("'%s' AND '%s'", cast, endTime);
-                                    } else {
-                                        whereName = String.format("'%s' AND '%s'", value.get(0), value.get(1));
-                                    }
-                                } else {
-                                    whereName = String.format("'%s'", value.get(0));
-                                }
-                                continue label135;
-                            }
-
-                            field = (DatasetTableField)var9.next();
-                        } while(CollectionUtils.isEmpty(value));
-                    } while(ObjectUtils.isEmpty(field));
-
-                    whereName = "";
-                    String originName;
-                    if (ObjectUtils.isNotEmpty(field.getExtField()) && field.getExtField() == 2) {
-                        originName = this.calcFieldRegex(field.getOriginName(), tableObj);
-                    } else if (ObjectUtils.isNotEmpty(field.getExtField()) && field.getExtField() == 1) {
-                        originName = String.format("%s.%s", tableObj.getTableAlias(), field.getOriginName());
-                    } else {
-                        originName = String.format("%s.%s", tableObj.getTableAlias(), field.getOriginName());
-                    }
-
-                    if (field.getDeType() == 1) {
-                        if (field.getDeExtractType() == 0 || field.getDeExtractType() == 5) {
-                            whereName = String.format("date_parse(%s, '%s')", originName, StringUtils.isNotEmpty(field.getDateFormat()) ? field.getDateFormat() : "yyyy-MM-dd HH:mm:ss");
-                        }
-
-                        if (field.getDeExtractType() == 2 || field.getDeExtractType() == 3 || field.getDeExtractType() == 4) {
-                            cast = String.format("CAST(%s AS %s)", originName, "bigint");
-                            whereName = String.format("from_unixtime(%s)", cast);
-                        }
-
-                        if (field.getDeExtractType() == 1) {
-                            whereName = originName;
-                        }
-                    } else if (field.getDeType() != 2 && field.getDeType() != 3) {
-                        whereName = originName;
-                    } else {
-                        if (field.getDeExtractType() == 0 || field.getDeExtractType() == 5) {
-                            whereName = String.format("CAST(%s AS %s)", originName, "DOUBLE");
-                        }
-
-                        if (field.getDeExtractType() == 1) {
-                            whereName = String.format("to_unixtime(%s)", originName);
-                        }
-
-                        if (field.getDeExtractType() == 2 || field.getDeExtractType() == 3 || field.getDeExtractType() == 4) {
-                            whereName = originName;
-                        }
-                    }
-
-                    whereNameList.add(whereName);
-                }
+            List<String> whereNameList = new ArrayList<>();
+            List<DatasetTableField> fieldList = new ArrayList<>();
+            if (request.getIsTree()) {
+                fieldList.addAll(request.getDatasetTableFieldList());
+            } else {
+                fieldList.add(request.getDatasetTableField());
             }
 
-            List<String> strList = new ArrayList();
-            list.forEach((ele) -> {
-                strList.add(ele.getWhereField() + " " + ele.getWhereTermAndValue());
-            });
-            return CollectionUtils.isNotEmpty(list) ? "(" + String.join(" AND ", strList) + ")" : null;
+            for (DatasetTableField field : fieldList) {
+                if (CollectionUtils.isEmpty(value) || ObjectUtils.isEmpty(field)) {
+                    continue;
+                }
+                String whereName = "";
+
+                String originName;
+                if (ObjectUtils.isNotEmpty(field.getExtField()) && field.getExtField() == 2) {
+                    // 解析origin name中有关联的字段生成sql表达式
+                    originName = calcFieldRegex(field.getOriginName(), tableObj);
+                } else if (ObjectUtils.isNotEmpty(field.getExtField()) && field.getExtField() == 1) {
+                    originName = String.format(TrinoConstants.KEYWORD_FIX, tableObj.getTableAlias(), field.getOriginName());
+                } else {
+                    originName = String.format(TrinoConstants.KEYWORD_FIX, tableObj.getTableAlias(), field.getOriginName());
+                }
+
+                if (field.getDeType() == 1) {
+                    if (field.getDeExtractType() == 0 || field.getDeExtractType() == 5) {
+                        whereName = String.format(TrinoConstants.date_parse, originName, StringUtils.isNotEmpty(field.getDateFormat()) ? field.getDateFormat() : TrinoConstants.DEFAULT_DATE_FORMAT);
+                    }
+                    if (field.getDeExtractType() == 2 || field.getDeExtractType() == 3 || field.getDeExtractType() == 4) {
+                        String cast = String.format(TrinoConstants.CAST, originName, "bigint");
+                        whereName = String.format(TrinoConstants.FROM_UNIXTIME, cast);
+                    }
+                    if (field.getDeExtractType() == 1) {
+                        whereName = originName;
+                    }
+                } else if (field.getDeType() == 2 || field.getDeType() == 3) {
+                    if (field.getDeExtractType() == 0 || field.getDeExtractType() == 5) {
+                        whereName = String.format(TrinoConstants.CAST, originName, TrinoConstants.DEFAULT_FLOAT_FORMAT);
+                    }
+                    if (field.getDeExtractType() == 1) {
+                        whereName = String.format(TrinoConstants.UNIX_TIMESTAMP, originName);
+                    }
+                    if (field.getDeExtractType() == 2 || field.getDeExtractType() == 3 || field.getDeExtractType() == 4) {
+                        whereName = originName;
+                    }
+                } else {
+                    whereName = originName;
+                }
+                whereNameList.add(whereName);
+            }
+
+            String whereName = "";
+            if (request.getIsTree()) {
+                whereName = "CONCAT(" + StringUtils.join(whereNameList, ",',',") + ")";
+            } else {
+                whereName = whereNameList.get(0);
+            }
+            String whereTerm = transMysqlFilterTerm(request.getOperator());
+            String whereValue = "";
+
+            if (StringUtils.containsIgnoreCase(request.getOperator(), "in")) {
+                whereValue = "('" + StringUtils.join(value, "','") + "')";
+            } else if (StringUtils.containsIgnoreCase(request.getOperator(), "like")) {
+                String keyword = value.get(0).toUpperCase();
+                whereValue = "'%" + keyword + "%'";
+                whereName = "upper(" + whereName + ")";
+            } else if (StringUtils.containsIgnoreCase(request.getOperator(), "between")) {
+                if (request.getDatasetTableField().getDeType() == 1) {
+                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    String startTime = simpleDateFormat.format(new Date(Long.parseLong(value.get(0))));
+                    String endTime = simpleDateFormat.format(new Date(Long.parseLong(value.get(1))));
+                    whereValue = String.format(TrinoConstants.WHERE_BETWEEN, startTime, endTime);
+                } else {
+                    whereValue = String.format(TrinoConstants.WHERE_BETWEEN, value.get(0), value.get(1));
+                }
+            } else {
+                whereValue = String.format(TrinoConstants.WHERE_VALUE_VALUE, value.get(0));
+            }
+            list.add(SQLObj.builder()
+                    .whereField(whereName)
+                    .whereTermAndValue(whereTerm + whereValue)
+                    .build());
         }
+        List<String> strList = new ArrayList<>();
+        list.forEach(ele -> strList.add(ele.getWhereField() + " " + ele.getWhereTermAndValue()));
+        return CollectionUtils.isNotEmpty(list) ? "(" + String.join(" AND ", strList) + ")" : null;
     }
 
     private String sqlFix(String sql) {
@@ -1148,58 +1127,63 @@ public class TrinoQueryProvider extends QueryProvider {
         }
     }
 
+
     private SQLObj getXFields(ChartViewFieldDTO x, String originField, String fieldAlias) {
         String fieldName = "";
-        String format;
         if (x.getDeExtractType() == DeTypeConstants.DE_TIME) {
-            if (x.getDeType() != 2 && x.getDeType() != 3) {
-                if (x.getDeType() == DeTypeConstants.DE_TIME) {
-                    format = this.transDateFormat(x.getDateStyle(), x.getDatePattern());
-                    fieldName = String.format("format_datetime(%s, '%s')", originField, format);
+            if (x.getDeType() == 2 || x.getDeType() == 3) {
+                fieldName = String.format(TrinoConstants.UNIX_TIMESTAMP, originField);
+            } else if (x.getDeType() == DeTypeConstants.DE_TIME) {
+                String format = transDateFormat(x.getDateStyle(), x.getDatePattern());
+                fieldName = String.format(TrinoConstants.FORMAT_DATETIME, originField, format);
+            } else {
+                fieldName = originField;
+            }
+        } else {
+            if (x.getDeType() == DeTypeConstants.DE_TIME) {
+                String format = transDateFormat(x.getDateStyle(), x.getDatePattern());
+                if (x.getDeExtractType() == DeTypeConstants.DE_STRING) {
+                    fieldName = String.format(TrinoConstants.FORMAT_DATETIME, String.format(TrinoConstants.date_parse, originField, StringUtils.isNotEmpty(x.getDateFormat()) ? x.getDateFormat() : TrinoConstants.DEFAULT_DATE_FORMAT), format);
+                } else {
+                    String from_unixtime = String.format(TrinoConstants.FROM_UNIXTIME, originField + "/1000");
+                    fieldName = String.format(TrinoConstants.FORMAT_DATETIME, from_unixtime, format);
+                }
+            } else {
+                if (x.getDeType() == DeTypeConstants.DE_INT) {
+                    fieldName = String.format(TrinoConstants.CAST, originField, TrinoConstants.DEFAULT_INT_FORMAT);
+                } else if (x.getDeType() == DeTypeConstants.DE_FLOAT) {
+                    fieldName = String.format(TrinoConstants.CAST, originField, TrinoConstants.DEFAULT_FLOAT_FORMAT);
                 } else {
                     fieldName = originField;
                 }
-            } else {
-                fieldName = String.format("to_unixtime(%s)", originField);
             }
-        } else if (x.getDeType() == DeTypeConstants.DE_TIME) {
-            format = this.transDateFormat(x.getDateStyle(), x.getDatePattern());
-            if (x.getDeExtractType() == DeTypeConstants.DE_STRING) {
-                fieldName = String.format("format_datetime(%s, '%s')", String.format("date_parse(%s, '%s')", originField, StringUtils.isNotEmpty(x.getDateFormat()) ? x.getDateFormat() : "yyyy-MM-dd HH:mm:ss"), format);
-            } else {
-                String from_unixtime = String.format("from_unixtime(%s)", originField + "/1000");
-                fieldName = String.format("format_datetime(%s, '%s')", from_unixtime, format);
-            }
-        } else if (x.getDeType() == DeTypeConstants.DE_INT) {
-            fieldName = String.format("CAST(%s AS %s)", originField, "bigint");
-        } else if (x.getDeType() == DeTypeConstants.DE_FLOAT) {
-            fieldName = String.format("CAST(%s AS %s)", originField, "DOUBLE");
-        } else {
-            fieldName = originField;
         }
-
-        return SQLObj.builder().fieldName(fieldName).fieldAlias(fieldAlias).build();
+        return SQLObj.builder()
+                .fieldName(fieldName)
+                .fieldAlias(fieldAlias)
+                .build();
     }
 
     private SQLObj getYFields(ChartViewFieldDTO y, String originField, String fieldAlias) {
         String fieldName = "";
         if (StringUtils.equalsIgnoreCase(y.getOriginName(), "*")) {
-            fieldName = "COUNT(*)";
+            fieldName = TrinoConstants.AGG_COUNT;
         } else if (SQLConstants.DIMENSION_TYPE.contains(y.getDeType())) {
-            fieldName = String.format("%s(%s)", y.getSummary(), originField);
+            fieldName = String.format(TrinoConstants.AGG_FIELD, y.getSummary(), originField);
         } else {
-            String cast;
-            if (!StringUtils.equalsIgnoreCase(y.getSummary(), "avg") && !StringUtils.containsIgnoreCase(y.getSummary(), "pop")) {
-                cast = String.format("CAST(%s AS %s)", originField, y.getDeType() == DeTypeConstants.DE_INT ? "bigint" : "DOUBLE");
-                fieldName = String.format("%s(%s)", y.getSummary(), cast);
+            if (StringUtils.equalsIgnoreCase(y.getSummary(), "avg") || StringUtils.containsIgnoreCase(y.getSummary(), "pop")) {
+                String cast = String.format(TrinoConstants.CAST, originField, y.getDeType() == DeTypeConstants.DE_INT ? TrinoConstants.DEFAULT_INT_FORMAT : TrinoConstants.DEFAULT_FLOAT_FORMAT);
+                String agg = String.format(TrinoConstants.AGG_FIELD, y.getSummary(), cast);
+                fieldName = String.format(TrinoConstants.CAST, agg, TrinoConstants.DEFAULT_FLOAT_FORMAT);
             } else {
-                cast = String.format("CAST(%s AS %s)", originField, y.getDeType() == DeTypeConstants.DE_INT ? "bigint" : "DOUBLE");
-                String agg = String.format("%s(%s)", y.getSummary(), cast);
-                fieldName = String.format("CAST(%s AS %s)", agg, "DOUBLE");
+                String cast = String.format(TrinoConstants.CAST, originField, y.getDeType() == DeTypeConstants.DE_INT ? TrinoConstants.DEFAULT_INT_FORMAT : TrinoConstants.DEFAULT_FLOAT_FORMAT);
+                fieldName = String.format(TrinoConstants.AGG_FIELD, y.getSummary(), cast);
             }
         }
-
-        return SQLObj.builder().fieldName(fieldName).fieldAlias(fieldAlias).build();
+        return SQLObj.builder()
+                .fieldName(fieldName)
+                .fieldAlias(fieldAlias)
+                .build();
     }
 
     private String getYWheres(ChartViewFieldDTO y, String originField, String fieldAlias) {
