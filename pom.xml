@@ -38,5 +38,6 @@
     <modules>
         <module>dataease-extensions-view</module>
         <module>dataease-extensions-datasource</module>
+        <module>dataease-extensions-datasource/trino</module>
     </modules>
 </project>

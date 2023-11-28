@@ -17,6 +17,18 @@
             <artifactId>dataease-plugin-datasource</artifactId>
             <scope>provided</scope>
         </dependency>
+
+<!--        <dependency>-->
+<!--            <groupId>com.alibaba</groupId>-->
+<!--            <artifactId>fastjson</artifactId>-->
+<!--            <version>1.2.83</version>-->
+<!--        </dependency>-->
+
+<!--        <dependency>-->
+<!--            <groupId>dremio</groupId>-->
+<!--            <artifactId>dremio-jdbc-driver</artifactId>-->
+<!--            <version>17.0.0</version>-->
+<!--        </dependency>-->
     </dependencies>
 
     <build>
