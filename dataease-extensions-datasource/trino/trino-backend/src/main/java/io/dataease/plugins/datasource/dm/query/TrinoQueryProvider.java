@@ -123,7 +123,7 @@ public class TrinoQueryProvider extends QueryProvider {
                     } else if (f.getDeType() == DeTypeConstants.DE_FLOAT) {
                         fieldName = String.format(TrinoConstants.CAST, originField, TrinoConstants.DEFAULT_FLOAT_FORMAT);
                     } else if (f.getDeType() == DeTypeConstants.DE_TIME) {
-                        fieldName = String.format(TrinoConstants.date_parse, originField, StringUtils.isNotEmpty(f.getDateFormat()) ? f.getDateFormat() : TrinoConstants.DEFAULT_DATE_FORMAT);
+                        fieldName = String.format(TrinoConstants.to_date, originField, StringUtils.isNotEmpty(f.getDateFormat()) ? f.getDateFormat() : TrinoConstants.DEFAULT_DATE_FORMAT);
                     } else {
                         fieldName = originField;
                     }
@@ -1007,6 +1007,7 @@ public class TrinoQueryProvider extends QueryProvider {
                 fieldList.add(request.getDatasetTableField());
             }
 
+            Boolean numberValueFlag = false;
             for (DatasetTableField field : fieldList) {
                 if (CollectionUtils.isEmpty(value) || ObjectUtils.isEmpty(field)) {
                     continue;
@@ -1044,6 +1045,9 @@ public class TrinoQueryProvider extends QueryProvider {
                     if (field.getDeExtractType() == 2 || field.getDeExtractType() == 3 || field.getDeExtractType() == 4) {
                         whereName = originName;
                     }
+                    if (field.getDeExtractType() == DeTypeConstants.DE_INT || field.getDeExtractType() == DeTypeConstants.DE_FLOAT) {
+                        numberValueFlag = true;
+                    }
                 } else {
                     whereName = originName;
                 }
@@ -1060,7 +1064,11 @@ public class TrinoQueryProvider extends QueryProvider {
             String whereValue = "";
 
             if (StringUtils.containsIgnoreCase(request.getOperator(), "in")) {
-                whereValue = "('" + StringUtils.join(value, "','") + "')";
+                if (numberValueFlag || StringUtils.equalsIgnoreCase(value.get(0), "null")) {
+                    whereValue = "(" + StringUtils.join(value, ",") + ")";
+                } else {
+                    whereValue = "('" + StringUtils.join(value, "','") + "')";
+                }
             } else if (StringUtils.containsIgnoreCase(request.getOperator(), "like")) {
                 String keyword = value.get(0).toUpperCase();
                 whereValue = "'%" + keyword + "%'";
@@ -1070,12 +1078,16 @@ public class TrinoQueryProvider extends QueryProvider {
                     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                     String startTime = simpleDateFormat.format(new Date(Long.parseLong(value.get(0))));
                     String endTime = simpleDateFormat.format(new Date(Long.parseLong(value.get(1))));
-                    whereValue = String.format(TrinoConstants.WHERE_BETWEEN, startTime, endTime);
+                    whereValue = String.format(TrinoConstants.WHERE_TIME_BETWEEN, startTime, endTime);
                 } else {
                     whereValue = String.format(TrinoConstants.WHERE_BETWEEN, value.get(0), value.get(1));
                 }
             } else {
-                whereValue = String.format(TrinoConstants.WHERE_VALUE_VALUE, value.get(0));
+                if (numberValueFlag || StringUtils.equalsIgnoreCase(value.get(0), "null")) {
+                    whereValue = String.format(TrinoConstants.WHERE_NUMBER_VALUE, value.get(0));
+                } else {
+                    whereValue = String.format(TrinoConstants.WHERE_VALUE_VALUE, value.get(0));
+                }
             }
             list.add(SQLObj.builder()
                     .whereField(whereName)
@@ -1265,11 +1277,11 @@ public class TrinoQueryProvider extends QueryProvider {
         ObjectMapper objectMapper = new ObjectMapper();
         List<Dateformat> dateformats = new ArrayList();
 
-        try {
-            dateformats = (List)objectMapper.readValue("[\n{\"dateformat\": \"yyyy-MM-dd\"},\n{\"dateformat\": \"yyyy/MM/dd\"},\n{\"dateformat\": \"YyyyyMMdd\"},\n{\"dateformat\": \"yyyy-MM-dd HH:mm:s\"},\n{\"dateformat\": \"yyyy-MM-dd HH:mm:s\"},\n{\"dateformat\": \"yyyy-MM-dd HH:mm:s\"}\n]", new TypeReference<List<Dateformat>>() {
-            });
-        } catch (Exception var4) {
-        }
+//        try {
+//            dateformats = (List)objectMapper.readValue("[\n{\"dateformat\": \"yyyy-MM-dd\"},\n{\"dateformat\": \"yyyy/MM/dd\"},\n{\"dateformat\": \"YyyyyMMdd\"},\n{\"dateformat\": \"yyyy-MM-dd HH:mm:s\"},\n{\"dateformat\": \"yyyy-MM-dd HH:mm:s\"},\n{\"dateformat\": \"yyyy-MM-dd HH:mm:s\"}\n]", new TypeReference<List<Dateformat>>() {
+//            });
+//        } catch (Exception var4) {
+//        }
 
         return (List)dateformats;
     }
