@@ -34,6 +34,29 @@
             </span>
             <el-input v-model="tooltipForm.formatter" type="textarea" :autosize="{ minRows: 4, maxRows: 4}" :placeholder="$t('chart.formatter_plc')" @blur="changeTooltipAttr" />
           </el-form-item>
+
+          <el-form-item class="form-item form-item-slider">
+            <span slot="label">
+              <span class="span-box">
+                <span>{{ $t('plugin_view_3d_ring.digit') }}</span>
+                <el-tooltip class="item" effect="dark" placement="bottom">
+                  <div slot="content">
+                    {{ $t('plugin_view_3d_ring.digit_content') }}
+                  </div>
+                  <i class="el-icon-info" style="cursor: pointer;" />
+                </el-tooltip>
+              </span>
+            </span>
+            <el-slider
+              v-model="tooltipForm.digit"
+              show-input
+              :show-input-controls="false"
+              input-size="mini"
+              :min="0"
+              :max="9"
+              @change="changeTooltipAttr"
+            />
+          </el-form-item>
         </div>
       </el-form>
     </el-col>

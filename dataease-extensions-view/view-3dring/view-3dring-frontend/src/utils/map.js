@@ -136,7 +136,8 @@ export const DEFAULT_LABEL = {
       fontSize: '10',
       color: '#909399'
     },
-    formatter: ''
+    formatter: '',
+    digit: 0
   }
   export const DEFAULT_TITLE_STYLE = {
     show: true,

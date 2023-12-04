@@ -66,6 +66,9 @@
           if (!customAttrObj.label.hasOwnProperty('digit')) {
             customAttrObj.label.digit = 0;
           }
+          if (!customAttrObj.tooltip.hasOwnProperty('digit')) {
+            customAttrObj.tooltip.digit = 0;
+          }
           this.obj.chart.customAttr = JSON.stringify(customAttrObj);
         }
         return this.obj.chart

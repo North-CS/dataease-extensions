@@ -225,7 +225,7 @@ export function basePieOption(chart_option, chart, terminal = 'pc') {
       formatter = formatter.replace('{a}', '{series.name}')
       formatter = formatter.replace('{b}', '{point.name}')
       formatter = formatter.replace('{c}', '{point.y}')
-      formatter = formatter.replace('{d', '{point.percentage')
+      formatter = formatter.replace('{d', '{point.percentage:.'+customAttr.tooltip.digit+'f')
       chart_option.tooltip.pointFormat = formatter
     }
 
